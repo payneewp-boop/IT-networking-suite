@@ -5,6 +5,8 @@ common ports on devices already discovered by `inventory`, flags insecure ones,
 and reviews the configured DNS resolvers.
 """
 
+import sys
+
 from .. import net
 from ..config import (
     COMMON_PORTS,
@@ -16,6 +18,7 @@ from ..config import (
     REPORTS_DIR,
 )
 from ..util import (
+    emit_json,
     ensure_dir,
     now_iso,
     print_table,
@@ -86,9 +89,12 @@ def _export_markdown(result, counts):
 
 
 def run(args):
+    # In --json mode, keep stdout clean for JSON: progress goes to stderr.
+    log = sys.stderr if getattr(args, "json", False) else sys.stdout
+
     inv = _load_latest_inventory()
     if not inv:
-        print("No inventory found. Run `netagent inventory` first.")
+        print("No inventory found. Run `netagent inventory` first.", file=log)
         return 1
 
     gateway = inv.get("gateway")
@@ -96,7 +102,8 @@ def run(args):
     findings = []
     device_results = []
 
-    print(f"Auditing {len(inv['devices'])} device(s) from inventory ({inv['timestamp']})...")
+    print(f"Auditing {len(inv['devices'])} device(s) from inventory "
+          f"({inv['timestamp']})...", file=log)
     for d in inv["devices"]:
         open_ports = net.scan_ports(d["ip"], ports, timeout=args.timeout / 1000)
         insecure = [p for p in open_ports if p in INSECURE_PORTS]
@@ -130,6 +137,13 @@ def run(args):
     }
     write_json(LATEST_AUDIT, result)
 
+    if args.markdown:
+        result["markdown_path"] = str(_export_markdown(result, counts))
+
+    if getattr(args, "json", False):
+        emit_json(result)
+        return 0
+
     print("\n=== Security Audit ===")
     print_table(["Result", "Check", "Detail"], [[s, c, d] for (s, c, d) in findings])
 
@@ -156,7 +170,6 @@ def run(args):
         "here — review those in the admin panel."
     )
 
-    if args.markdown:
-        path = _export_markdown(result, counts)
-        print(f"Markdown report: {path}")
+    if "markdown_path" in result:
+        print(f"Markdown report: {result['markdown_path']}")
     return 0

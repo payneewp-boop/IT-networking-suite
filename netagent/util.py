@@ -2,8 +2,15 @@
 
 import csv
 import json
+import sys
 from datetime import datetime
 from pathlib import Path
+
+
+def emit_json(record):
+    """Print a structured record as JSON to stdout (for --json mode)."""
+    json.dump(record, sys.stdout, indent=2, default=str)
+    sys.stdout.write("\n")
 
 
 def now_iso():

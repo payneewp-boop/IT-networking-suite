@@ -86,6 +86,22 @@ netagent report
 
 Typical weekly rhythm: `inventory` → `audit` → `connectivity` → `report`.
 
+### JSON output
+
+Every agent accepts `--json`, which prints its structured result to **stdout**
+as JSON while all progress/status text goes to **stderr**. This makes the output
+safe to pipe or redirect for scripting:
+
+```bat
+netagent inventory --json > scan.json
+netagent audit --json | jq ".findings[] | select(.severity==\"FAIL\")"
+netagent connectivity --duration 60 --json > link.json
+netagent report --json > summary.json
+```
+
+(The human-readable tables are still saved to `data/` and `reports/` as usual;
+`--json` only changes what's printed to the terminal.)
+
 ## Scheduling
 
 ### Windows (Task Scheduler)

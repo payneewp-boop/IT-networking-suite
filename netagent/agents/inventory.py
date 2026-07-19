@@ -1,10 +1,12 @@
 """Agent 1 — inventory: discover devices on the local subnet and flag new ones."""
 
 import ipaddress
+import sys
 
 from .. import net, oui
 from ..config import DATA_DIR, LATEST_INVENTORY
 from ..util import (
+    emit_json,
     now_iso,
     print_table,
     read_json,
@@ -30,40 +32,45 @@ def _ip_sort_key(ip):
 
 
 def run(args):
-    print("Detecting network...")
+    # In --json mode, keep stdout clean for JSON: progress goes to stderr.
+    log = sys.stderr if args.json else sys.stdout
+
+    print("Detecting network...", file=log)
     gateway = net.default_gateway()
     ip = net.local_ip()
     try:
         subnet = net.local_subnet(args.prefix)
     except ValueError as exc:
-        print(f"Could not determine subnet: {exc}")
+        print(f"Could not determine subnet: {exc}", file=log)
         return 1
 
-    print(f"  Local IP: {ip}")
-    print(f"  Gateway:  {gateway or 'unknown'}")
-    print(f"  Subnet:   {subnet}")
+    print(f"  Local IP: {ip}", file=log)
+    print(f"  Gateway:  {gateway or 'unknown'}", file=log)
+    print(f"  Subnet:   {subnet}", file=log)
 
     hosts = list(subnet.hosts())
     if len(hosts) > 1024:
         print(
             f"  Subnet has {len(hosts)} addresses — too large to sweep safely.\n"
-            f"  Narrow it with --prefix (e.g. --prefix 24). Aborting."
+            f"  Narrow it with --prefix (e.g. --prefix 24). Aborting.",
+            file=log,
         )
         return 1
 
-    print(f"Pinging {len(hosts)} addresses to populate the ARP table (~30s)...")
+    print(f"Pinging {len(hosts)} addresses to populate the ARP table (~30s)...", file=log)
     net.ping_sweep(hosts, timeout_ms=args.timeout)
 
-    print("Reading ARP table...")
+    print("Reading ARP table...", file=log)
     arp = net.arp_table()
     if not arp:
         print(
             "  No devices found in the ARP table. This can happen if the ping\n"
             "  sweep was blocked by a firewall or the interface is idle. Try\n"
-            "  re-running, or check that you're connected to the network."
+            "  re-running, or check that you're connected to the network.",
+            file=log,
         )
 
-    oui.ensure_oui_db()
+    oui.ensure_oui_db(quiet=args.json)
 
     # Load previous snapshot BEFORE writing the new one, for the new-device diff.
     prev = read_json(_previous_inventory_file()) if _previous_inventory_file() else None
@@ -88,11 +95,13 @@ def run(args):
             }
         )
 
+    new_devices = [d for d in devices if d["new"]]
     record = {
         "timestamp": now_iso(),
         "gateway": gateway,
         "subnet": str(subnet),
         "device_count": len(devices),
+        "new_device_count": len(new_devices),
         "devices": devices,
     }
 
@@ -102,6 +111,10 @@ def run(args):
     write_json(json_path, record)
     write_csv(csv_path, devices, _FIELDS)
     write_json(LATEST_INVENTORY, record)
+
+    if args.json:
+        emit_json({**record, "files": {"json": str(json_path), "csv": str(csv_path)}})
+        return 0
 
     print(f"\nFound {len(devices)} device(s) on {subnet}:\n")
     rows = [
@@ -117,7 +130,6 @@ def run(args):
     if rows:
         print_table(["IP", "MAC", "Vendor", "Hostname", "Note"], rows)
 
-    new_devices = [d for d in devices if d["new"]]
     if new_devices:
         print(f"\n[!] {len(new_devices)} NEW device(s) since the last scan:")
         for d in new_devices:

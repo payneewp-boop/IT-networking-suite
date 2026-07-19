@@ -7,11 +7,12 @@ targets, never a scan or probe. Useful for "is it my Wi-Fi or my ISP".
 """
 
 import statistics
+import sys
 import time
 
 from .. import net
 from ..config import DEFAULT_CONNECTIVITY_TARGETS, LATEST_CONNECTIVITY
-from ..util import now_iso, print_table, write_json
+from ..util import emit_json, now_iso, print_table, write_json
 
 
 def _summarize(target, samples):
@@ -44,6 +45,9 @@ def _summarize(target, samples):
 
 
 def run(args):
+    # In --json mode, keep stdout clean for JSON: progress goes to stderr.
+    log = sys.stderr if args.json else sys.stdout
+
     gateway = net.default_gateway()
     targets = []
     if gateway:
@@ -56,9 +60,9 @@ def run(args):
     interval = args.interval
     per_ping_timeout = int(interval * 1000) if interval < 2 else 1500
 
-    print(f"Monitoring {len(targets)} target(s) for {duration}s (every {interval}s):")
-    print(f"  targets: {', '.join(targets)}")
-    print("  (press Ctrl-C to stop early and report partial results)\n")
+    print(f"Monitoring {len(targets)} target(s) for {duration}s (every {interval}s):", file=log)
+    print(f"  targets: {', '.join(targets)}", file=log)
+    print("  (press Ctrl-C to stop early and report partial results)\n", file=log)
 
     samples = {t: [] for t in targets}
     deadline = time.time() + duration
@@ -68,13 +72,13 @@ def run(args):
             for t in targets:
                 samples[t].append(net.ping_once(t, timeout_ms=per_ping_timeout))
             rounds += 1
-            print(f"\r  pings sent: {rounds} per target", end="", flush=True)
+            print(f"\r  pings sent: {rounds} per target", end="", flush=True, file=log)
             remaining = deadline - time.time()
             if remaining > 0:
                 time.sleep(min(interval, remaining))
     except KeyboardInterrupt:
-        print("\n  stopped early — reporting partial results")
-    print()
+        print("\n  stopped early — reporting partial results", file=log)
+    print(file=log)
 
     results = [_summarize(t, samples[t]) for t in targets]
 
@@ -82,9 +86,14 @@ def run(args):
         "timestamp": now_iso(),
         "duration_s": duration,
         "interval_s": interval,
+        "gateway": gateway,
         "results": results,
     }
     write_json(LATEST_CONNECTIVITY, record)
+
+    if args.json:
+        emit_json(record)
+        return 0
 
     print("\n=== Connectivity ===")
     rows = []

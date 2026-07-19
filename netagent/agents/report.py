@@ -11,7 +11,7 @@ from ..config import (
     LATEST_INVENTORY,
     REPORTS_DIR,
 )
-from ..util import ensure_dir, now_iso, read_json, today_str
+from ..util import emit_json, ensure_dir, now_iso, read_json, today_str
 
 
 def run(args):
@@ -100,6 +100,33 @@ def run(args):
     ensure_dir(REPORTS_DIR)
     path = REPORTS_DIR / f"{today_str()}.md"
     path.write_text("\n".join(lines), encoding="utf-8")
+
+    if getattr(args, "json", False):
+        emit_json(
+            {
+                "date": today_str(),
+                "generated": now_iso(),
+                "report_path": str(path),
+                "attention": attention,
+                "inventory": {
+                    "timestamp": inv["timestamp"],
+                    "device_count": inv.get("device_count", len(inv["devices"])),
+                    "new_devices": [d for d in inv["devices"] if d.get("new")],
+                } if inv else None,
+                "audit": {
+                    "timestamp": audit["timestamp"],
+                    "counts": audit.get("counts", {}),
+                    "failures": [f for f in audit["findings"] if f["severity"] == "FAIL"],
+                    "warnings": [f for f in audit["findings"] if f["severity"] == "WARN"],
+                } if audit else None,
+                "connectivity": {
+                    "timestamp": conn["timestamp"],
+                    "flagged": [r for r in conn["results"] if r.get("flags")],
+                    "results": conn["results"],
+                } if conn else None,
+            }
+        )
+        return 0
 
     print(f"Report written: {path}\n")
     print("Needs attention:")
