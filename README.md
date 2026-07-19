@@ -187,7 +187,16 @@ netagent/
   don't respond to ping and haven't recently talked to your machine may not
   appear. This is the trade-off for staying privilege-free; it's plenty for a
   weekly "what's on my network" check.
-- Assumes a single `/24`-style home subnet by default. Use `--prefix` if yours
-  differs.
+- Assumes a single `/24`-style home subnet by default (it derives the range
+  from your IP, not the real netmask). Use `--prefix` if yours differs.
+- Parsing assumes an **English-language OS**: it keys off strings like
+  "Default Gateway", "DNS Servers", and "time=" in command output. On a
+  non-English Windows install those may not match, which shows up as a missing
+  gateway/DNS or pings counted as loss. English is the primary supported locale.
+- The `audit` DNS check treats anything that isn't your router or a well-known
+  public resolver as a **warning**, not a failure — it's often just your ISP's
+  DNS handed out by DHCP. Confirm unfamiliar resolvers yourself.
+- Historical snapshots in `data/` accumulate over time; prune old
+  `inventory-*.json` / `.csv` files if the folder grows.
 - Not a replacement for enterprise tooling (nmap, Wireshark) — it's a
   lightweight, safe, glanceable home dashboard.

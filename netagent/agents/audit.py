@@ -49,8 +49,13 @@ def _check_dns(dns, gateway):
         elif server.startswith("127.") or server.startswith("169.254."):
             findings.append(("PASS", f"DNS {server}", "local/stub resolver"))
         else:
+            # Not the router and not a known public resolver. Often just the
+            # ISP's own DNS handed out by DHCP (benign), but could indicate DNS
+            # hijacking — worth a look, not a hard failure.
             findings.append(
-                ("FAIL", f"DNS {server}", "unrecognized resolver — verify this is intentional")
+                ("WARN", f"DNS {server}",
+                 "unrecognized resolver — usually the ISP's, but verify it's "
+                 "intentional (unexpected DNS can signal hijacking)")
             )
     if not dns:
         findings.append(("WARN", "DNS servers", "could not read DNS configuration"))

@@ -73,7 +73,8 @@ def run(args):
     oui.ensure_oui_db(quiet=args.json)
 
     # Load previous snapshot BEFORE writing the new one, for the new-device diff.
-    prev = read_json(_previous_inventory_file()) if _previous_inventory_file() else None
+    prev_file = _previous_inventory_file()
+    prev = read_json(prev_file) if prev_file else None
     prev_macs = {d["mac"] for d in prev["devices"]} if prev else set()
 
     devices = []
