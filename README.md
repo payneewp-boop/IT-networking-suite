@@ -189,10 +189,11 @@ netagent/
   weekly "what's on my network" check.
 - Assumes a single `/24`-style home subnet by default (it derives the range
   from your IP, not the real netmask). Use `--prefix` if yours differs.
-- Parsing assumes an **English-language OS**: it keys off strings like
-  "Default Gateway", "DNS Servers", and "time=" in command output. On a
-  non-English Windows install those may not match, which shows up as a missing
-  gateway/DNS or pings counted as loss. English is the primary supported locale.
+- Parsing is **locale-resilient**: gateway detection reads the numeric routing
+  table (`route print` / `netstat -rn`), DNS uses PowerShell's structured
+  `Get-DnsClientServerAddress`, and ping matches the `ms` figure rather than the
+  localized "time="/"Zeit="/"tiempo=" keyword. English-label parsing (ipconfig's
+  "Default Gateway" / "DNS Servers") remains only as a last-resort fallback.
 - The `audit` DNS check treats anything that isn't your router or a well-known
   public resolver as a **warning**, not a failure — it's often just your ISP's
   DNS handed out by DHCP. Confirm unfamiliar resolvers yourself.

@@ -70,13 +70,18 @@ def local_ip():
 def default_gateway():
     """Return the default gateway IP, or None if it can't be determined."""
     if IS_WINDOWS:
-        out = _run(["route", "print", "0.0.0.0"])
-        for line in out.splitlines():
-            parts = line.split()
-            if len(parts) >= 3 and parts[0] == "0.0.0.0" and _is_ip(parts[2]):
-                return parts[2]
-        # Fallback: parse ipconfig. The gateway line may list an IPv6 address
-        # first, so require a full dotted-quad rather than any digit run.
+        # Primary: the routing table is numeric and locale-independent. The
+        # default route is the row "0.0.0.0  0.0.0.0  <gateway>  ..." in both
+        # `route print` and Windows `netstat -rn`.
+        for cmd in (["route", "print", "0.0.0.0"], ["netstat", "-rn"]):
+            out = _run(cmd)
+            for line in out.splitlines():
+                parts = line.split()
+                if (len(parts) >= 3 and parts[0] == "0.0.0.0"
+                        and parts[1] == "0.0.0.0" and _is_ip(parts[2])):
+                    return parts[2]
+        # Last resort (English-only): the "Default Gateway" label in ipconfig.
+        # It may list an IPv6 address first, so require a full dotted-quad.
         out = _run(["ipconfig"])
         capturing = False
         for line in out.splitlines():
@@ -123,11 +128,16 @@ def ping_cmd(host, count=1, timeout_ms=1000):
 
 
 def ping_once(host, timeout_ms=1000):
-    """Ping a host once. Returns round-trip time in ms, or None if unreachable."""
+    """Ping a host once. Returns round-trip time in ms, or None if unreachable.
+
+    Matches "<number> ms" rather than the localized "time=" / "Zeit=" / "tiempo="
+    keyword, so it reads RTT on non-English systems too. On an unreachable host
+    the output carries no "ms" figure, so this returns None.
+    """
     out = _run(ping_cmd(host, 1, timeout_ms), timeout=timeout_ms / 1000 + 3)
     if not out:
         return None
-    m = re.search(r"time[=<]\s*([\d.]+)\s*ms", out, re.IGNORECASE)
+    m = re.search(r"([\d.]+)\s*ms", out, re.IGNORECASE)
     if m:
         return float(m.group(1))
     return None
@@ -193,23 +203,33 @@ def dns_servers():
     found = []
 
     if IS_WINDOWS:
-        out = _run(["ipconfig", "/all"])
-        capturing = False
-        for line in out.splitlines():
-            if re.search(r"DNS Servers", line):
-                capturing = True
-                found.extend(re.findall(r"\d+\.\d+\.\d+\.\d+", line))
-                continue
-            elif capturing:
-                stripped = line.strip()
-                if re.fullmatch(r"\d+\.\d+\.\d+\.\d+", stripped):
-                    found.append(stripped)
-                elif re.fullmatch(r"[0-9A-Fa-f:%.]+", stripped):
-                    # IPv6 DNS continuation line — skip it but keep reading.
+        # Primary: PowerShell returns the resolver IPs as structured data, one
+        # per line — no localized labels to match.
+        out = _run([
+            "powershell", "-NoProfile", "-Command",
+            "Get-DnsClientServerAddress -AddressFamily IPv4 | "
+            "Select-Object -ExpandProperty ServerAddresses",
+        ])
+        found.extend(re.findall(r"\d+\.\d+\.\d+\.\d+", out))
+        # Fallback (English-only): the "DNS Servers" label in ipconfig /all.
+        if not found:
+            out = _run(["ipconfig", "/all"])
+            capturing = False
+            for line in out.splitlines():
+                if re.search(r"DNS Servers", line):
+                    capturing = True
+                    found.extend(re.findall(r"\d+\.\d+\.\d+\.\d+", line))
                     continue
-                else:
-                    # A new labelled field (contains letters/':') ends the block.
-                    capturing = False
+                elif capturing:
+                    stripped = line.strip()
+                    if re.fullmatch(r"\d+\.\d+\.\d+\.\d+", stripped):
+                        found.append(stripped)
+                    elif re.fullmatch(r"[0-9A-Fa-f:%.]+", stripped):
+                        # IPv6 DNS continuation line — skip it but keep reading.
+                        continue
+                    else:
+                        # A new labelled field ends the block.
+                        capturing = False
     elif IS_MAC:
         out = _run(["scutil", "--dns"])
         found.extend(re.findall(r"nameserver\[\d+\]\s*:\s*([0-9.]+)", out))

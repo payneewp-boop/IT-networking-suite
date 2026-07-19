@@ -38,6 +38,20 @@ Interface: 192.168.0.23 --- 0xb
   255.255.255.255       ff-ff-ff-ff-ff-ff     static
 """
 
+# Windows `netstat -rn` — same numeric default-route row as `route print`.
+WIN_NETSTAT = """\
+===========================================================================
+IPv4 Route Table
+===========================================================================
+Active Routes:
+Network Destination        Netmask          Gateway       Interface  Metric
+          0.0.0.0          0.0.0.0      192.168.0.1     192.168.0.23     25
+===========================================================================
+"""
+
+# PowerShell Get-DnsClientServerAddress output: one IP per line, no labels.
+WIN_POWERSHELL_DNS = "192.168.0.1\n8.8.8.8\n"
+
 WIN_IPCONFIG_ALL_DNS = """\
 Windows IP Configuration
 
@@ -101,9 +115,17 @@ class GatewayTests(unittest.TestCase):
         ):
             self.assertEqual(net.default_gateway(), "192.168.0.1")
 
+    def test_windows_netstat_fallback(self):
+        # route print yields nothing -> the numeric `netstat -rn` table is the
+        # locale-independent fallback before any label parsing.
+        with patch_platform(is_windows=True), mock.patch.object(
+            net, "_run", fake_run_from({"netstat": WIN_NETSTAT})
+        ):
+            self.assertEqual(net.default_gateway(), "192.168.0.1")
+
     def test_windows_ipconfig_fallback_ipv6_first(self):
-        # route print yields nothing -> fall back to ipconfig, which lists an
-        # IPv6 gateway before the real IPv4 one.
+        # Neither routing-table command matched -> last-resort ipconfig label,
+        # which lists an IPv6 gateway before the real IPv4 one.
         with patch_platform(is_windows=True), mock.patch.object(
             net, "_run", fake_run_from({"ipconfig": WIN_IPCONFIG_IPV6_FIRST})
         ):
@@ -156,7 +178,16 @@ class ArpTableTests(unittest.TestCase):
 
 
 class DnsServerTests(unittest.TestCase):
-    def test_windows_skips_ipv6_continuation(self):
+    def test_windows_powershell_primary(self):
+        # PowerShell output is the locale-independent primary source.
+        with patch_platform(is_windows=True), mock.patch.object(
+            net, "_run", fake_run_from({"powershell": WIN_POWERSHELL_DNS})
+        ):
+            self.assertEqual(net.dns_servers(), ["192.168.0.1", "8.8.8.8"])
+
+    def test_windows_ipconfig_fallback_skips_ipv6(self):
+        # PowerShell yields nothing -> fall back to ipconfig /all, skipping the
+        # IPv6 continuation line but still catching the IPv4 resolver after it.
         with patch_platform(is_windows=True), mock.patch.object(
             net, "_run", fake_run_from({"ipconfig": WIN_IPCONFIG_ALL_DNS})
         ):
@@ -198,6 +229,15 @@ class PingTests(unittest.TestCase):
     def test_unix_reply(self):
         out = "64 bytes from 192.168.1.1: icmp_seq=0 ttl=64 time=8.42 ms"
         self.assertEqual(self._ping_with(out), 8.42)
+
+    def test_localized_german_reply(self):
+        # Non-English Windows localizes "time" (here "Zeit") but keeps "ms".
+        out = "Antwort von 192.168.1.1: Bytes=32 Zeit=14ms TTL=64"
+        self.assertEqual(self._ping_with(out), 14.0)
+
+    def test_localized_spanish_reply(self):
+        out = "Respuesta desde 192.168.1.1: bytes=32 tiempo=9ms TTL=64"
+        self.assertEqual(self._ping_with(out), 9.0)
 
     def test_unreachable_returns_none(self):
         self.assertIsNone(self._ping_with("Request timed out."))
