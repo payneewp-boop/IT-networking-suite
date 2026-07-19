@@ -1,5 +1,7 @@
 # netagent
 
+[![CI](https://github.com/payneewp-boop/IT-networking-suite/actions/workflows/ci.yml/badge.svg)](https://github.com/payneewp-boop/IT-networking-suite/actions/workflows/ci.yml)
+
 A small set of **local, read-only** command-line agents for monitoring and
 securing a home network. Zero cloud dependencies, no accounts, nothing that
 runs outside your LAN. Built for a single household network (against a
@@ -152,6 +154,10 @@ without touching the real system. Run from the project root:
 ```bat
 python -m unittest discover
 ```
+
+CI runs this suite on every push and pull request across Windows, macOS, and
+Linux (and on the minimum supported Python, 3.8) via
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 
 ## Project layout
 
