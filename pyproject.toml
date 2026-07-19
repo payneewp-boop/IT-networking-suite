@@ -4,6 +4,12 @@ version = "0.1.0"
 description = "Local home-network monitoring and security agents (read-only, LAN-only)."
 readme = "README.md"
 requires-python = ">=3.8"
+license = { file = "LICENSE" }
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
 dependencies = []
 
 [project.scripts]
