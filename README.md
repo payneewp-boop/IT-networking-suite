@@ -127,6 +127,16 @@ NETAGENT_HOME=/Users/you/.netagent
 10 8 * * 1 cd /path/to/netagent && /usr/bin/python3 -m netagent report >> "$NETAGENT_HOME/cron.log" 2>&1
 ```
 
+## Tests
+
+A stdlib-only (`unittest`) suite mocks `arp` / `ipconfig` / `route` / `ping`
+output, so the parsers are verified across Windows, macOS, and Linux formats
+without touching the real system. Run from the project root:
+
+```bat
+python -m unittest discover
+```
+
 ## Project layout
 
 ```
@@ -144,6 +154,7 @@ netagent/
 │       ├── audit.py         # Agent 2
 │       ├── connectivity.py  # Agent 3
 │       └── report.py        # Agent 4
+├── tests/                   # unittest suite (mocks arp/ipconfig/route/ping)
 ├── data/                    # gitignored — scan history + oui.csv
 └── reports/                 # gitignored — dated markdown reports
 ```

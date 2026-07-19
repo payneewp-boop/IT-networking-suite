@@ -19,6 +19,9 @@ IS_MAC = platform.system() == "Darwin"
 _MAC_SEARCH = re.compile(r"([0-9a-fA-F]{2}[:-]){5}[0-9a-fA-F]{2}")
 _MAC_FULL = re.compile(r"^([0-9a-f]{2}:){5}[0-9a-f]{2}$")
 
+# MACs that never represent a real device (all-zero / broadcast).
+_NON_DEVICE_MACS = {"00:00:00:00:00:00", "ff:ff:ff:ff:ff:ff"}
+
 
 def _run(cmd, timeout=10):
     """Run a command, returning stdout as text (empty string on any failure).
@@ -154,7 +157,7 @@ def arp_table():
             parts = line.split()
             if len(parts) >= 2 and _is_ip(parts[0]):
                 mac = _norm_mac(parts[1])
-                if mac and mac != "00:00:00:00:00:00" and mac != "ff:ff:ff:ff:ff:ff":
+                if mac and mac not in _NON_DEVICE_MACS:
                     result[parts[0]] = mac
     else:
         for line in out.splitlines():
@@ -162,7 +165,7 @@ def arp_table():
             mac_match = _MAC_SEARCH.search(line)
             if ip_match and mac_match:
                 mac = _norm_mac(mac_match.group(0))
-                if mac and mac != "00:00:00:00:00:00":
+                if mac and mac not in _NON_DEVICE_MACS:
                     result[ip_match.group(1)] = mac
 
     # Linux fallback when `arp` isn't present.
@@ -172,7 +175,7 @@ def arp_table():
             parts = line.split()
             if parts and _is_ip(parts[0]) and "lladdr" in parts:
                 mac = _norm_mac(parts[parts.index("lladdr") + 1])
-                if mac:
+                if mac and mac not in _NON_DEVICE_MACS:
                     result[parts[0]] = mac
     return result
 
