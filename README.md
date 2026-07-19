@@ -2,8 +2,9 @@
 
 A small set of **local, read-only** command-line agents for monitoring and
 securing a home network. Zero cloud dependencies, no accounts, nothing that
-runs outside your LAN. Built for a single household network (tested against a
-TP-Link Archer AXE5400, but router-agnostic).
+runs outside your LAN. Built for a single household network (against a
+TP-Link Archer AXE5400, but router-agnostic). **Primary target: Windows**;
+also runs on macOS and Linux.
 
 Four agents, one CLI:
 
@@ -30,16 +31,19 @@ Four agents, one CLI:
 
 ## Install
 
-```bash
+```bat
 cd netagent
-python3 -m pip install -e .      # installs the `netagent` command
+python -m pip install -e .       :: installs the `netagent` command
 ```
 
 Or run without installing:
 
-```bash
-python3 -m netagent <command>
+```bat
+python -m netagent <command>
 ```
+
+(On macOS/Linux use `python3` instead of `python`. After `pip install -e .`
+the `netagent` command works the same on every platform.)
 
 All data is written under the current working directory:
 
@@ -84,33 +88,44 @@ Typical weekly rhythm: `inventory` → `audit` → `connectivity` → `report`.
 
 ## Scheduling
 
+### Windows (Task Scheduler)
+
+The simplest reliable approach: put the weekly run in a small batch file, then
+point one scheduled task at it. Save this as `run-weekly.bat` in the project
+folder (edit the two paths):
+
+```bat
+@echo off
+set NETAGENT_HOME=%USERPROFILE%\.netagent
+cd /d C:\path\to\netagent
+python -m netagent inventory
+python -m netagent audit
+python -m netagent report
+```
+
+Register it to run every Monday at 08:00 (PowerShell, one line):
+
+```powershell
+Register-ScheduledTask -TaskName "netagent-weekly" `
+  -Trigger (New-ScheduledTaskTrigger -Weekly -DaysOfWeek Monday -At 8am) `
+  -Action  (New-ScheduledTaskAction -Execute "C:\path\to\netagent\run-weekly.bat")
+```
+
+Or configure it through the Task Scheduler GUI: **Create Basic Task → Weekly →
+Start a program →** `run-weekly.bat`. Run the batch file once by hand first so
+the one-time OUI download happens interactively.
+
 ### macOS / Linux (cron)
 
 `crontab -e`, then — adjust the path to wherever you cloned this:
 
 ```cron
-# Weekly inventory + report, Mondays at 08:00
+# Weekly inventory + audit + report, Mondays at 08:00
 NETAGENT_HOME=/Users/you/.netagent
 0 8 * * 1 cd /path/to/netagent && /usr/bin/python3 -m netagent inventory >> "$NETAGENT_HOME/cron.log" 2>&1
 5 8 * * 1 cd /path/to/netagent && /usr/bin/python3 -m netagent audit >> "$NETAGENT_HOME/cron.log" 2>&1
 10 8 * * 1 cd /path/to/netagent && /usr/bin/python3 -m netagent report >> "$NETAGENT_HOME/cron.log" 2>&1
 ```
-
-### Windows (Task Scheduler)
-
-Create a weekly task that runs inventory then report (PowerShell):
-
-```powershell
-$py  = "python"
-$dir = "C:\path\to\netagent"
-$env:NETAGENT_HOME = "$env:USERPROFILE\.netagent"
-
-Register-ScheduledTask -TaskName "netagent-weekly" -Trigger (New-ScheduledTaskTrigger -Weekly -DaysOfWeek Monday -At 8am) -Action (New-ScheduledTaskAction -Execute $py -Argument "-m netagent inventory" -WorkingDirectory $dir)
-```
-
-Run `audit` and `report` as additional actions/tasks the same way. (For a
-one-shot equivalent you can also just chain them in a `.bat` file:
-`python -m netagent inventory && python -m netagent audit && python -m netagent report`.)
 
 ## Project layout
 

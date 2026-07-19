@@ -21,13 +21,21 @@ _MAC_FULL = re.compile(r"^([0-9a-f]{2}:){5}[0-9a-f]{2}$")
 
 
 def _run(cmd, timeout=10):
-    """Run a command, returning stdout as text (empty string on any failure)."""
+    """Run a command, returning stdout as text (empty string on any failure).
+
+    ``errors="replace"`` guards against Windows tools (ipconfig/route) emitting
+    output in the console OEM code page rather than clean UTF-8.
+    """
     try:
         proc = subprocess.run(
-            cmd, capture_output=True, text=True, timeout=timeout
+            cmd,
+            capture_output=True,
+            text=True,
+            errors="replace",
+            timeout=timeout,
         )
         return proc.stdout or ""
-    except (subprocess.SubprocessError, FileNotFoundError, OSError):
+    except (subprocess.SubprocessError, FileNotFoundError, OSError, ValueError):
         return ""
 
 
@@ -64,9 +72,21 @@ def default_gateway():
             parts = line.split()
             if len(parts) >= 3 and parts[0] == "0.0.0.0" and _is_ip(parts[2]):
                 return parts[2]
+        # Fallback: parse ipconfig. The gateway line may list an IPv6 address
+        # first, so require a full dotted-quad rather than any digit run.
         out = _run(["ipconfig"])
-        m = re.search(r"Default Gateway.*?:\s*([0-9.]+)", out)
-        return m.group(1) if m else None
+        capturing = False
+        for line in out.splitlines():
+            if "Default Gateway" in line:
+                capturing = True
+            if capturing:
+                m = re.search(r"(\d+\.\d+\.\d+\.\d+)", line)
+                if m:
+                    return m.group(1)
+                # Continuation lines have no label; a new labelled line ends it.
+                if ":" in line and "Default Gateway" not in line:
+                    capturing = False
+        return None
 
     # Linux: `ip route`; macOS/BSD: `netstat -rn`.
     out = _run(["ip", "route", "show", "default"])
@@ -177,11 +197,15 @@ def dns_servers():
                 capturing = True
                 found.extend(re.findall(r"\d+\.\d+\.\d+\.\d+", line))
                 continue
-            if capturing:
+            elif capturing:
                 stripped = line.strip()
                 if re.fullmatch(r"\d+\.\d+\.\d+\.\d+", stripped):
                     found.append(stripped)
-                elif ":" in line:
+                elif re.fullmatch(r"[0-9A-Fa-f:%.]+", stripped):
+                    # IPv6 DNS continuation line — skip it but keep reading.
+                    continue
+                else:
+                    # A new labelled field (contains letters/':') ends the block.
                     capturing = False
     elif IS_MAC:
         out = _run(["scutil", "--dns"])
