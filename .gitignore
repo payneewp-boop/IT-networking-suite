@@ -1,0 +1,12 @@
+# Local scan history and generated reports (not for version control)
+data/
+reports/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
