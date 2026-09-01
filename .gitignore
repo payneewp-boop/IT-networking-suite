@@ -10,3 +10,8 @@ venv/
 *.egg-info/
 build/
 dist/
+
+# Transfer/scratch leftovers
+_to_delete/
+*.stale
+*.stale2
