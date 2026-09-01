@@ -49,7 +49,5 @@ reference file, major for a changed skill name or removed behavior.
 
 ## Maintenance notes
 
-- `environment.md` was reconstructed on 2026-09-01; verify against the original
-  before relying on it.
 - The `description` frontmatter in each SKILL.md drives triggering — edit it
   deliberately and re-test with a few realistic prompts after any change.

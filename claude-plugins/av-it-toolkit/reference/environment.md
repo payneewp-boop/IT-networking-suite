@@ -3,10 +3,6 @@
 Shared context for every skill in `av-it-toolkit`. Read this before recommending
 a tool, a script, or a document format.
 
-> Reconstructed 2026-09-01 from Erik's stated preferences. The earlier copy at
-> `/mnt/skills/user/shared/environment.md` was not recoverable in this session.
-> Verify and edit before treating as authoritative.
-
 ## Contexts
 
 | Context | What dominates | Review |
@@ -62,7 +58,3 @@ Overlap exists with installed plugin skills. Prefer:
   and IT operational docs.
 - `operations:risk-assessment` for a risk register; `engineering:architecture`
   for a technology-choice ADR.
-
-## Open items
-
-- Confirm the reconstructed content above matches the original file.

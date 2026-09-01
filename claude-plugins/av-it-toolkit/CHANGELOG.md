@@ -2,6 +2,13 @@
 
 All notable changes to `av-it-toolkit`.
 
+## [0.1.1] - 2026-09-01
+
+### Changed
+- `reference/environment.md` confirmed accurate by Erik; removed the
+  "reconstructed, verify before relying on it" banner and the open-items
+  section. The file is now authoritative.
+
 ## [0.1.0] - 2026-09-01
 
 ### Added
