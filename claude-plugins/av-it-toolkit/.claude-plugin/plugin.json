@@ -1,6 +1,6 @@
 {
   "name": "av-it-toolkit",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Erik's paired AV/IT skills: automation-advisor (find and fix repetitive work) and documentation-writer (SOPs, runbooks, signal-flow and config records), sharing one bundled environment.md that carries tool constraints and design priorities.",
   "author": {
     "name": "Erik"
