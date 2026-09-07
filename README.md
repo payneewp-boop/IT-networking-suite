@@ -38,14 +38,17 @@ cd netagent
 python -m pip install -e .       :: installs the `netagent` command
 ```
 
-Or run without installing:
+Then run any agent one of two ways — these are equivalent:
 
 ```bat
-python -m netagent <command>
+netagent <command>            :: short form; needs the Scripts dir on PATH
+python -m netagent <command>  :: always works, PATH or not
 ```
 
-(On macOS/Linux use `python3` instead of `python`. After `pip install -e .`
-the `netagent` command works the same on every platform.)
+If `netagent` gives you *"The term 'netagent' is not recognized"*, use the
+`python -m netagent` form or see [Troubleshooting](#troubleshooting).
+
+(On macOS/Linux use `python3` instead of `python`.)
 
 All data is written under the current working directory:
 
@@ -180,6 +183,46 @@ netagent/
 ├── data/                    # gitignored — scan history + oui.csv
 └── reports/                 # gitignored — dated markdown reports
 ```
+
+## Troubleshooting
+
+### `netagent : The term 'netagent' is not recognized...` (Windows)
+
+The package installed fine — Windows just can't find the shortcut command.
+`pip` puts `netagent.exe` in a `Scripts\` folder that isn't on your `PATH`.
+
+**Quickest fix — use the module form instead** (works regardless of PATH):
+
+```bat
+python -m netagent inventory
+```
+
+**Permanent fix — put the Scripts folder on PATH.** Find it with:
+
+```bat
+python -c "import sysconfig; print(sysconfig.get_path('scripts'))"
+```
+
+Then: Windows Search → *"Edit environment variables for your account"* → select
+`Path` → **New** → paste that folder → **OK**, and open a **new** terminal.
+
+### `python : The term 'python' is not recognized...`
+
+Python isn't on your PATH either. Try the Windows launcher — `py -m netagent
+inventory` — or reinstall Python from [python.org](https://www.python.org/downloads/)
+with **"Add python.exe to PATH"** ticked.
+
+### `No module named netagent`
+
+The install didn't take. From inside the repo folder, re-run
+`python -m pip install -e .` and read the output for the real error. Confirm with
+`python -m pip show netagent`.
+
+### `inventory` finds no devices
+
+Usually the ping sweep was blocked or the interface was idle. Re-run it; if it
+persists, check you're on Wi-Fi/Ethernet (not VPN-only) and that your subnet is a
+`/24` — otherwise pass `--prefix`. See also *Notes & limitations* below.
 
 ## Notes & limitations
 
