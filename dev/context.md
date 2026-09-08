@@ -23,8 +23,10 @@ The hook resolves both `dev\` and `.state\` by walking up for a `.git` entry, no
 from the raw session cwd -- a session started in `claude-plugins\av-it-toolkit`
 still writes its snapshot to the repo root. `cwd` is recorded verbatim in the
 snapshot regardless: where the session ran is a separate fact from where its state
-belongs. Verified under a real compaction on 2026-09-08, not just a synthetic stdin
-redirect.
+belongs. Verified under two real compactions on 2026-09-08, not just a synthetic
+stdin redirect. The second run checked the other half: the three `dev/` lines carried
+the mtimes as they stood that minute, so the hook stats the files each time rather
+than reusing anything from the previous snapshot.
 
 ## Where the authority sits
 
@@ -54,7 +56,7 @@ is not evidence that the branch is open. Read the merge state on the PR instead.
 
 `.github/workflows/ci.yml` has run on every pull request since 2026-07-19. Four jobs:
 ubuntu py3.8 and py3.12, macos py3.12, windows py3.12. The three POSIX jobs finish in
-13-15s; **windows takes ~47s and is always the last to land**.
+13-15s; **windows takes 30-47s and is always the last to land**.
 
 So a merge is not instant, and it can be refused for two different reasons. Read the
 PR's `mergeStateStatus` before deciding what to do about it:
@@ -68,6 +70,8 @@ PR's `mergeStateStatus` before deciding what to do about it:
 
 Both happened to PR #11 in sequence: blocked on checks, then behind after PR #10
 landed while it waited. On a busy day, update the branch first and wait once.
+Neither is the normal case -- PR #14 went green and merged on the first attempt.
+Read the state before assuming a problem.
 
     gh pr view <n> --json mergeStateStatus -q .mergeStateStatus
 
