@@ -34,9 +34,13 @@ Settled design decisions, so they don't get relitigated:
   MISSING line is the informative one — it says the scaffolding was never written.
 
 Verified end to end against a manual compaction; first snapshot 2026-09-07 21:18.
-Re-verified after the git-root amendment on 2026-09-08 -- a real compaction this
-time, not a synthetic stdin redirect, which is the only test that exercises the
-hook as the harness actually calls it.
+Re-verified twice after the git-root amendment on 2026-09-08, both real compactions
+rather than synthetic stdin redirects -- the only test that exercises the hook as the
+harness actually calls it. The two runs answer different questions: the first, that
+the root walk finds `dev/` from a subdirectory session; the second, that the
+timestamps are read at compaction time rather than carried forward. A snapshot that
+reported stale mtimes would be worse than none, because it would read as current.
+Phase 1 is closed on that second run.
 
 ## Phase 2 — scaffolding and hygiene  (done 2026-09-07)
 
