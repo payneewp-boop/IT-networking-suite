@@ -56,10 +56,20 @@ is not evidence that the branch is open. Read the merge state on the PR instead.
 ubuntu py3.8 and py3.12, macos py3.12, windows py3.12. The three POSIX jobs finish in
 13-15s; **windows takes ~47s and is always the last to land**.
 
-So a merge is not instant. `gh pr merge` against a PR whose checks are still running
-fails with "the base branch policy prohibits the merge" -- which reads like a
-permissions problem and is not one. Wait for checks, then merge; do not reach for
-`--admin`.
+So a merge is not instant, and it can be refused for two different reasons. Read the
+PR's `mergeStateStatus` before deciding what to do about it:
+
+- **BLOCKED** -- checks still running. `gh pr merge` fails with "the base branch
+  policy prohibits the merge", which reads like a permissions problem and is not one.
+  Wait for the windows job. Do not reach for `--admin`.
+- **BEHIND** -- checks passed, but `main` moved underneath and the ruleset requires
+  the branch be current. `gh pr update-branch <n>` fixes it. That pushes a merge
+  commit, which **re-runs the whole matrix**, so the wait happens a second time.
+
+Both happened to PR #11 in sequence: blocked on checks, then behind after PR #10
+landed while it waited. On a busy day, update the branch first and wait once.
+
+    gh pr view <n> --json mergeStateStatus -q .mergeStateStatus
 
 ## Environment facts that have cost time
 
