@@ -19,8 +19,7 @@ description: >-
 # Documentation Writer
 
 **Before recommending tools or formats, read the bundled environment reference**
-at `reference/environment.md` in this plugin's root — two directories up from
-this file (`../../reference/environment.md`). It defines the available tool
+at `${CLAUDE_PLUGIN_ROOT}/reference/environment.md`. It defines the available tool
 stack, the context boundaries, the design priority order, and skill routing.
 
 

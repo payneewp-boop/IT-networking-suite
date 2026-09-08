@@ -1,7 +1,7 @@
 {
   "name": "av-it-toolkit",
-  "version": "0.1.2",
-  "description": "Erik's paired AV/IT skills: automation-advisor (find and fix repetitive work) and documentation-writer (SOPs, runbooks, signal-flow and config records), sharing one bundled environment.md that carries tool constraints and design priorities.",
+  "version": "0.1.3",
+  "description": "Erik's AV/IT skills: automation-advisor (find and fix repetitive work), documentation-writer (SOPs, runbooks, config records), and signal-flow-capture (a room walkthrough into Rooms + Devices records), sharing one bundled environment.md that carries tool constraints, the Notion database map, and design priorities.",
   "author": {
     "name": "Erik"
   },
@@ -11,6 +11,9 @@
     "automation",
     "documentation",
     "sop",
-    "runbook"
+    "runbook",
+    "signal-flow",
+    "dante",
+    "notion"
   ]
 }
