@@ -23,6 +23,11 @@ in `plan.md`. Updated 2026-09-08.
 
 ## Done
 
+- [x] 2026-09-08 Second real compaction confirmed the hook reads live mtimes.
+      The new snapshot landed beside the first at the repo root, recorded the same
+      plugin-subdirectory cwd, and carried the three `dev/` timestamps as they stood
+      that minute -- 17:34, 16:42, 15:14. The first run proved the files were found;
+      this one proves nothing is cached between runs. Hook work closed.
 - [x] 2026-09-08 CLAUDE.md updated: hook source, the `<repo>\dev\` pointer, and a
       Hooks and plugins section carrying the authority split and the two-command ship
       sequence. Erik pasted it; Claude drafted only -- the file sits under `.claude`,
