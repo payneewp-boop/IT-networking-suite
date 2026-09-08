@@ -1,0 +1,56 @@
+# Uptime Kuma — continuous availability monitoring for the shop and home network.
+#
+# This is the "is it down right now" layer. netagent is the weekly point-in-time
+# layer. See README.md in this directory for how the two divide the work.
+#
+#   docker compose up -d          start
+#   docker compose logs -f        watch it boot
+#   docker compose ps             state, including health
+#   docker compose pull && docker compose up -d    upgrade (read release notes first)
+
+# Explicit project name. Without it Compose derives one from the directory, so
+# the volume would be called `infra_uptime-kuma-data` — accurate but useless on
+# a host running more than one thing.
+name: uptime-kuma
+
+services:
+  uptime-kuma:
+    # Pinned to an exact version on purpose. `latest` and the floating `2` tag
+    # both move under you; a monitoring stack that upgrades itself overnight is
+    # how you find out it broke by not being paged.
+    image: louislam/uptime-kuma:2.5.3
+    container_name: uptime-kuma
+
+    # The whole point is surviving a reboot without being asked. `unless-stopped`
+    # rather than `always`, so a deliberate `docker compose stop` stays stopped.
+    restart: unless-stopped
+
+    ports:
+      # host:container. 3001 is Uptime Kuma's default.
+      #
+      # On a Synology NAS, DSM uses 5000/5001 and several packages sit in the
+      # 3000s. If 3001 is taken, change ONLY the left-hand number
+      # (e.g. "3101:3001") — the container side must stay 3001.
+      - "3001:3001"
+
+    volumes:
+      # Everything Uptime Kuma knows lives here: monitors, history, and the
+      # notification credentials. Losing this volume loses the configuration.
+      - uptime-kuma-data:/app/data
+
+    environment:
+      # Incident timestamps should read in the clock you actually look at.
+      # Without this the container runs UTC, and every alert needs mental
+      # arithmetic at the exact moment you least want to do any.
+      - TZ=America/Indiana/Indianapolis
+
+    # No healthcheck defined here on purpose. The image already ships one
+    # (HEALTHCHECK ... CMD extra/healthcheck, a compiled Go binary) and it is
+    # inherited automatically. An earlier draft of this file added a curl-based
+    # check; curl is not present in the released image, so that check would have
+    # failed forever and reported a working container as unhealthy.
+    #
+    # Confirm health with:  docker compose ps
+
+volumes:
+  uptime-kuma-data:
