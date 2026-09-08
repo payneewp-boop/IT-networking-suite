@@ -2,6 +2,24 @@
 
 All notable changes to `av-it-toolkit`.
 
+## [0.1.4] - 2026-09-07
+
+### Added
+- `structured-troubleshooting` skill. `reference/environment.md` had routed to
+  this skill since 0.1.2 while it did not exist, so the routing table named a
+  destination that could never be selected.
+- Diagnosis method is signal-chain bisection with one change at a time, and an
+  explicit rule that unhelpful changes are reversed immediately -- fault-finding
+  debris is the source of the next intermittent.
+- Institutional constraint stated up front: when a class start forces service
+  restoration before the cause is known, restore it and record that you did. An
+  undocumented workaround looks like a fix, so nobody investigates.
+- A restart that clears a symptom is recorded as "cause unknown", not as a
+  resolution.
+- `references/log-entry.md`: field shapes for the Troubleshooting log and Config
+  records, including the rule that root cause and resolution are different
+  fields, and that a reverted change still gets a Config records entry.
+
 ## [0.1.3] - 2026-09-07
 
 ### Added
