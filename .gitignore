@@ -15,3 +15,9 @@ dist/
 _to_delete/
 *.stale
 *.stale2
+
+# PreCompact state snapshots (local, never committed)
+.state/
+
+# Session-local Claude config inside the plugin tree
+claude-plugins/av-it-toolkit/.claude/
