@@ -1,0 +1,11 @@
+{
+  "name": "erik-local",
+  "owner": { "name": "Erik" },
+  "plugins": [
+    {
+      "name": "av-it-toolkit",
+      "source": "./av-it-toolkit",
+      "description": "Paired AV/IT skills: automation-advisor and documentation-writer, sharing one bundled environment reference."
+    }
+  ]
+}
