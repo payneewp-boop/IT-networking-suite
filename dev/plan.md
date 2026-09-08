@@ -31,23 +31,43 @@ Settled design decisions, so they don't get relitigated:
 
 Verified end to end against a manual compaction; first snapshot 2026-09-07 21:18.
 
-## Phase 2 — scaffolding and hygiene  (in progress)
+## Phase 2 — scaffolding and hygiene  (done 2026-09-07)
 
-- [x] `dev/` written at the repo root
-- [ ] Hook resolves `dev/` from the git root, not the raw session cwd — see tasks.md
-- [ ] Five CLAUDE.md blocks handed over as one paste-ready block
-- [ ] PR #4 merged; stale worktree at `claude-plugins/av-it-toolkit/.claude/worktrees/`
-      removed once no session holds it
+- [x] `dev/` written at the repo root and committed (PR #4)
+- [x] Hook resolves `dev/` and `.state/` from the git root, not the raw session cwd
+- [x] Stale worktree and its branch cleared; both were contained in main
+- [ ] Two CLAUDE.md inserts pasted — Erik's, same authority split as hook config
 - [ ] Connector prune on claude.ai — low value, tidies the web UI only
 
-## Phase 3 — the AV skills  (next)
+The five-block CLAUDE.md item resolved to two. The other three (PowerShell traps,
+execution policy, the working-state convention) are written in `context.md`, and
+duplicating them into CLAUDE.md would create a second copy that can silently
+disagree — the same failure the hook's pointers-not-content rule avoids.
 
-`signal-flow-doc` first. It turns a single room walkthrough into a Rooms record plus
-its Devices rows in one pass, which is the highest-leverage thing on the list: it is
-the step that currently doesn't happen, so rooms stay undocumented.
+## Phase 3 — the AV skills  (done 2026-09-07)
 
-`dante-diagnostics` second, because it is only useful once rooms and devices exist to
-diagnose against.
+Shipped as av-it-toolkit 0.1.3 and 0.1.4. Four skills, audit clean.
 
-Both write to Notion and both follow the `ROOM-DEVICE-PORT` label standard.
-Design priority order stays: reliability > simplicity > maintainability > cost > scalability.
+`signal-flow-capture` (PR #5) turns one room walkthrough into Rooms + Devices
+records. Named `-capture`, not `-doc`: it and `documentation-writer` are
+same-family siblings, and "doc" in both names routes badly, so the distinguishing
+verb goes where selection actually reads it. Scoped to capture; prose stays with
+`documentation-writer`.
+
+`structured-troubleshooting` (PR #6) diagnoses a fault and logs it. Doctrine had
+routed to this skill since 0.1.2 while it did not exist — the routing table named
+a destination that could never be selected.
+
+Both write to Notion with the room relation set, because an unrelated page is
+orphaned and will not surface on the room it concerns.
+
+`dante-diagnostics` is **not** being built next. Dante failure modes already sit
+inside `structured-troubleshooting`, and a fifth same-family skill pays
+discovery-tier rent every session against an existing 15% sibling overlap. The
+trigger to revisit is a real Dante fault that the current coverage handles badly.
+
+## What to watch
+
+Always-on metadata cost is ~810 est. tokens across four skills, paid every session
+before any work starts. Size on disk is not the cost — the description is. Check
+that number before adding a skill, not the line count.

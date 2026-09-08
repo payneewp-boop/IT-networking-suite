@@ -5,33 +5,51 @@ in `plan.md`. Updated 2026-09-07.
 
 ## Now
 
-- [ ] **Hook: resolve `dev/` from the git root.** `precompact-snapshot.ps1` uses
-      `$hook.cwd` verbatim, so a session started in `claude-plugins/av-it-toolkit`
-      reports all three files MISSING even though they exist at the repo root. Walk
-      up for a `.git` entry and fall back to `cwd` when there is none. `.state/`
-      should stay keyed to the same resolved root. Edit the source in
-      `Claude development\hooks\`, then Erik runs `deploy-hooks.ps1`.
-- [ ] **Hand over the five CLAUDE.md blocks** as one paste-ready block.
-- [ ] **Decide whether `dev/` is committed or ignored.** Currently untracked and not
-      ignored, which is the one state that is definitely wrong. `.state/` is ignored
-      because it is machine-local churn; these three are hand-written intent and
-      probably want history.
+- [ ] **Paste the two CLAUDE.md inserts.** Erik's to do — `~/.claude/CLAUDE.md` sits
+      under a `.claude` directory, so Claude drafts and Erik installs, same split as
+      hook config. One appends to *Where things live* (hook source location, the
+      `dev/` pointer with "read `dev/context.md` first on a cold start"); the other is
+      a new *Hooks and plugins* section carrying the authority split and the
+      two-command ship sequence.
 
 ## Next
 
-- [ ] Merge PR #4 (`gitignore-state-and-worktree`).
-- [ ] Remove `claude-plugins/av-it-toolkit/.claude/worktrees/` once no session holds
-      it. Already gitignored, so this is disk hygiene, not correctness.
 - [ ] Add the derivation line to chat preferences.
-- [ ] Draft `signal-flow-doc`.
+- [ ] Prune the stale plugin cache: `0.1.0` and `0.1.2` are still in
+      `~/.claude/plugins/cache/erik-local/av-it-toolkit/`. Harmless, just clutter.
 
 ## Someday
 
 - [ ] Connector prune on claude.ai. Tidies the web UI; negligible effect on Claude
       Code, where only five account connectors inject tools.
+- [ ] `dante-diagnostics` — **not yet, deliberately.** Dante failure modes (clock
+      contention, subscription vs. presence, primary/secondary, sample-rate mismatch)
+      are already inside `structured-troubleshooting`. A fifth same-family skill pays
+      discovery-tier rent every session against an existing 15% sibling overlap.
+      Build it when a real Dante fault shows where the current coverage is thin —
+      not before.
+- [ ] Watch the always-on metadata cost. Four skills currently cost ~810 est. tokens
+      before any work starts, paid whether they fire or not. That is the number to
+      check before adding a fifth, not the size of the skill on disk.
 
 ## Done
 
+- [x] 2026-09-07 av-it-toolkit 0.1.4: `structured-troubleshooting` built and shipped.
+      Doctrine had routed to it since 0.1.2 while it did not exist, so the routing
+      table named a destination that could never be selected. (PR #6)
+- [x] 2026-09-07 av-it-toolkit 0.1.3: `signal-flow-capture` built and shipped. Named
+      `-capture`, not `-doc`, so the distinguishing verb sits in the name where skill
+      routing reads it. (PR #5)
+- [x] 2026-09-07 Fixed four live audit errors: both original skills pointed at
+      `../../reference/environment.md`, which escapes the skill directory and did not
+      resolve from inside the bundle. An agent following that instruction failed the
+      read and improvised. Now `${CLAUDE_PLUGIN_ROOT}`.
+- [x] 2026-09-07 Backfilled the 0.1.2 CHANGELOG entry, which had shipped without one.
+- [x] 2026-09-07 Hook resolves `dev/` and `.state/` from the git root, not the raw
+      session cwd. Verified against three start directories.
+- [x] 2026-09-07 `dev/` scaffolding written and committed. (PR #4)
+- [x] 2026-09-07 Cleared the stale worktree and its branch; both were fully contained
+      in main, so nothing was lost.
 - [x] 2026-09-07 PreCompact hook written, wired, installed, verified against a real
       compaction.
 - [x] 2026-09-07 Fixed the BOM false-green in the `-Verify` lint fixture. It had been
