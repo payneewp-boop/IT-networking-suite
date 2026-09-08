@@ -19,14 +19,21 @@ The named exception is this directory. `dev/plan.md`, `dev/context.md` and
 `dev/tasks.md` are local working state and do not go to Notion. That exception is
 what makes the PreCompact hook meaningful: it reports on these three files by name.
 
+The hook resolves both `dev\` and `.state\` by walking up for a `.git` entry, not
+from the raw session cwd -- a session started in `claude-plugins\av-it-toolkit`
+still writes its snapshot to the repo root. `cwd` is recorded verbatim in the
+snapshot regardless: where the session ran is a separate fact from where its state
+belongs. Verified under a real compaction on 2026-09-08, not just a synthetic stdin
+redirect.
+
 ## Where the authority sits
 
 Claude authors hook **source** in `C:\Users\Erik\Claude development\hooks\`; Erik
 runs `deploy-hooks.ps1` to install. Claude cannot write into any `.claude` directory
 through the remote-device bridge. That is deliberate — hook config is code that runs
 on every tool call, so authoring is delegated and the authority over what executes
-stays with Erik. The same split applies to commits: Claude proposes, Erik says the
-word.
+stays with Erik. The same split applies to commits: Claude commits, Erik
+authorizes the merge.
 
 ## Shipping a plugin version
 
@@ -38,6 +45,21 @@ Two operations, both required, then restart:
 Run from the repo root, never a worktree. Verify shipped **content**, not just the
 version directory — a stale file under a fresh version number looks correct while the
 agent reads old doctrine. `main` is branch-protected, so anything pushed goes via PR.
+
+Protection is a **ruleset**, not classic branch protection -- the
+`/branches/main/protection` REST endpoint returns 404 "Branch not protected", which
+is not evidence that the branch is open. Read the merge state on the PR instead.
+
+## CI gates the merge
+
+`.github/workflows/ci.yml` has run on every pull request since 2026-07-19. Four jobs:
+ubuntu py3.8 and py3.12, macos py3.12, windows py3.12. The three POSIX jobs finish in
+13-15s; **windows takes ~47s and is always the last to land**.
+
+So a merge is not instant. `gh pr merge` against a PR whose checks are still running
+fails with "the base branch policy prohibits the merge" -- which reads like a
+permissions problem and is not one. Wait for checks, then merge; do not reach for
+`--admin`.
 
 ## Environment facts that have cost time
 
@@ -58,3 +80,9 @@ Never printed, echoed, or written. Transcripts are plaintext JSONL under
 `~/.claude/projects/` and cannot be un-written. A secret occupies two places only:
 its environment variable, and the HTTPS body going to its own issuer. Rotation is
 Erik's, never Claude's.
+
+## Concurrent sessions
+
+Other Claude sessions work in this repo and push their own branches (`claude/*`).
+A branch that appears on the remote mid-session is not necessarily this session's to
+rebase, merge, or delete. Read it if it matters; leave it alone otherwise.
