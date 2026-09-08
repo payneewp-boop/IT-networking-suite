@@ -1,22 +1,11 @@
 # Tasks
 
 Short-horizon and concrete. Anything that needs a paragraph of justification belongs
-in `plan.md`. Updated 2026-09-07.
+in `plan.md`. Updated 2026-09-08.
 
 ## Now
 
-- [ ] **Paste the two CLAUDE.md inserts.** Erik's to do — `~/.claude/CLAUDE.md` sits
-      under a `.claude` directory, so Claude drafts and Erik installs, same split as
-      hook config. One appends to *Where things live* (hook source location, the
-      `dev/` pointer with "read `dev/context.md` first on a cold start"); the other is
-      a new *Hooks and plugins* section carrying the authority split and the
-      two-command ship sequence.
-
-## Next
-
 - [ ] Add the derivation line to chat preferences.
-- [ ] Prune the stale plugin cache: `0.1.0` and `0.1.2` are still in
-      `~/.claude/plugins/cache/erik-local/av-it-toolkit/`. Harmless, just clutter.
 
 ## Someday
 
@@ -34,6 +23,22 @@ in `plan.md`. Updated 2026-09-07.
 
 ## Done
 
+- [x] 2026-09-08 CLAUDE.md updated: hook source, the `<repo>\dev\` pointer, and a
+      Hooks and plugins section carrying the authority split and the two-command ship
+      sequence. Erik pasted it; Claude drafted only -- the file sits under `.claude`,
+      which is the same boundary the section itself describes. He also added Resuming
+      work and Compaction sections that were not in the draft.
+- [x] 2026-09-08 Verified the git-root fix under a **real** compaction, not a
+      synthetic stdin redirect. Session cwd was two levels down in
+      `claude-plugins\av-it-toolkit`; the snapshot landed at the repo root with all
+      three `dev/` files timestamped, and recorded the true cwd verbatim. That was
+      the last thing standing between the fix and calling it proven.
+- [x] 2026-09-08 Deleted the pre-fix snapshot and the plugin's now-empty `.state/`.
+      It held three `MISSING` lines for files that existed one directory up -- the
+      defect's fingerprint, worth seeing once and not worth keeping.
+- [x] 2026-09-08 Pruned the plugin cache to 0.1.4 alone (479K -> 90K). The live
+      bundle was checked byte-for-byte against repo source first, so the prune
+      removed only superseded copies.
 - [x] 2026-09-07 av-it-toolkit 0.1.4: `structured-troubleshooting` built and shipped.
       Doctrine had routed to it since 0.1.2 while it did not exist, so the routing
       table named a destination that could never be selected. (PR #6)
