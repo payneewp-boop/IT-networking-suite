@@ -7,7 +7,7 @@ a tool, a script, or a document format.
 
 | Context | What dominates | Review |
 |---|---|---|
-| Institutional AV (Purdue) | Reliability, standards conformance | Assume others will review and maintain it |
+| Institutional AV | Reliability, standards conformance | Assume others will review and maintain it |
 | Home IT | Cost, simplicity | Solo-maintained |
 | The Stacks (mobile bookshop) | Cost, simplicity | Solo-maintained |
 
