@@ -47,6 +47,18 @@ KNOWN_KEYS = {
     "license",
     "version",
     "metadata",
+    # Isolation trio, documented at code.claude.com/docs/en/skills: `context`
+    # (fork | inherit) runs the skill in its own subagent, `agent` picks which
+    # subagent type, `background` chooses whether the parent waits. Added
+    # 2026-09-11 after repo-radar declared all three and the linter called
+    # every one a typo - a false warning on a correct file is how a linter
+    # teaches people to ignore it.
+    "context",
+    "agent",
+    "background",
+    # Local convention: several of Erik's skills declare runtime prerequisites
+    # here (Python version, `gh` CLI, etc). Recognized so it does not warn.
+    "compatibility",
 }
 
 NAME_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
