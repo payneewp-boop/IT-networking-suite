@@ -1,5 +1,6 @@
 """Parser tests for netagent.net across Windows, macOS, and Linux output."""
 
+import ipaddress
 import unittest
 from unittest import mock
 
@@ -244,6 +245,136 @@ class PingTests(unittest.TestCase):
 
     def test_empty_returns_none(self):
         self.assertIsNone(self._ping_with(""))
+
+
+# --- Mutation-testing gaps ---------------------------------------------------
+# Found by the lab challenger in claude-development
+# (lab/reports/it-networking-suite-challenge-2026-10-07.md): each case kills
+# breakages the parser tests above let through.
+
+WIN_IPCONFIG_TWO_ADAPTERS = """\
+Windows IP Configuration
+
+Ethernet adapter vEthernet (Default Switch):
+   IPv4 Address. . . . . . . . . . . : 172.20.0.1
+   Subnet Mask . . . . . . . . . . . : 255.255.240.0
+   Default Gateway . . . . . . . . . :
+
+Ethernet adapter Ethernet:
+   IPv4 Address. . . . . . . . . . . : 192.168.0.23
+   Subnet Mask . . . . . . . . . . . : 255.255.255.0
+   Default Gateway . . . . . . . . . : 192.168.0.1
+"""
+
+
+class PingCommandTests(unittest.TestCase):
+    # The wait flag means milliseconds on Windows and macOS but seconds on
+    # Linux; a mix-up makes every sweep on one OS time out or take minutes.
+    def test_windows_waits_in_milliseconds(self):
+        with patch_platform(is_windows=True):
+            self.assertEqual(net.ping_cmd("10.0.0.1", 2, 750),
+                             ["ping", "-n", "2", "-w", "750", "10.0.0.1"])
+
+    def test_macos_waits_in_milliseconds(self):
+        with patch_platform(is_mac=True):
+            self.assertEqual(net.ping_cmd("10.0.0.1", 1, 750),
+                             ["ping", "-c", "1", "-W", "750", "10.0.0.1"])
+
+    def test_linux_waits_in_whole_seconds_never_zero(self):
+        with patch_platform():
+            self.assertEqual(net.ping_cmd("10.0.0.1", 3, 2600),
+                             ["ping", "-c", "3", "-W", "3", "10.0.0.1"])
+            self.assertEqual(net.ping_cmd("10.0.0.1", 1, 300)[4], "1")
+
+
+class SubnetTests(unittest.TestCase):
+    def test_host_bits_are_dropped(self):
+        with mock.patch.object(net, "local_ip", return_value="192.168.0.23"):
+            self.assertEqual(str(net.local_subnet()), "192.168.0.0/24")
+            self.assertEqual(str(net.local_subnet(16)), "192.168.0.0/16")
+
+
+class GatewayEdgeTests(unittest.TestCase):
+    def test_no_route_anywhere_is_none(self):
+        for windows in (True, False):
+            with patch_platform(is_windows=windows), mock.patch.object(
+                net, "_run", fake_run_from({})
+            ):
+                self.assertIsNone(net.default_gateway())
+
+    def test_ipconfig_blank_gateway_does_not_borrow_the_next_adapter(self):
+        # The first adapter has no gateway. Its block must end at the next
+        # adapter header, not run on and report that adapter's own address.
+        with patch_platform(is_windows=True), mock.patch.object(
+            net, "_run", fake_run_from({"ipconfig": WIN_IPCONFIG_TWO_ADAPTERS})
+        ):
+            self.assertEqual(net.default_gateway(), "192.168.0.1")
+
+
+class ArpEdgeTests(unittest.TestCase):
+    def test_unix_incomplete_entry_skipped(self):
+        out = "? (192.168.1.77) at (incomplete) on en0 ifscope [ethernet]\n"
+        with patch_platform(), mock.patch.object(net, "_run", fake_run_from({"arp -a": out})):
+            self.assertEqual(net.arp_table(), {})
+
+    def test_zero_mac_dropped_on_windows(self):
+        out = "  192.168.0.9           00-00-00-00-00-00     dynamic\n"
+        with patch_platform(is_windows=True), mock.patch.object(
+            net, "_run", fake_run_from({"arp -a": out})
+        ):
+            self.assertEqual(net.arp_table(), {})
+
+
+class DnsDedupeTests(unittest.TestCase):
+    def test_duplicates_and_bad_addresses_dropped_in_order(self):
+        with patch_platform(is_windows=True), mock.patch.object(
+            net, "_run", fake_run_from({"Get-DnsClientServerAddress":
+                                        "8.8.8.8\n192.168.0.1\n8.8.8.8\n999.1.1.1\n"})
+        ):
+            self.assertEqual(net.dns_servers(), ["8.8.8.8", "192.168.0.1"])
+
+
+class PortScanTests(unittest.TestCase):
+    class FakeSocket:
+        def __init__(self, *args):
+            pass
+
+        def settimeout(self, timeout):
+            pass
+
+        def connect_ex(self, address):
+            if address[1] == 23:
+                raise OSError("unreachable")
+            return 0 if address[1] == 80 else 111
+
+        def close(self):
+            pass
+
+    def test_only_accepting_ports_reported_sorted(self):
+        with mock.patch.object(net.socket, "socket", self.FakeSocket):
+            self.assertTrue(net.scan_port("10.0.0.5", 80))
+            self.assertFalse(net.scan_port("10.0.0.5", 443))
+            self.assertFalse(net.scan_port("10.0.0.5", 23))
+            self.assertEqual(net.scan_ports("10.0.0.5", [443, 80, 23, 22]), [80])
+
+
+class SweepTests(unittest.TestCase):
+    def test_only_answering_hosts_returned_in_input_order(self):
+        replies = {"10.0.0.2": 1.5, "10.0.0.4": 0.0}  # 0.0 ms is still a reply
+        with mock.patch.object(net, "ping_once", lambda host, timeout_ms: replies.get(host)):
+            hosts = list(ipaddress.ip_network("10.0.0.0/29").hosts())
+            self.assertEqual(net.ping_sweep(hosts), ["10.0.0.2", "10.0.0.4"])
+
+    def test_ping_once_gives_the_run_a_deadline_past_the_ping_wait(self):
+        seen = {}
+
+        def fake(cmd, timeout=10):
+            seen["timeout"] = timeout
+            return ""
+
+        with patch_platform(), mock.patch.object(net, "_run", fake):
+            self.assertIsNone(net.ping_once("10.0.0.1", 2000))
+        self.assertEqual(seen["timeout"], 5.0)
 
 
 if __name__ == "__main__":
