@@ -48,6 +48,19 @@ Any file not named `SKILL.md` → exit 0 immediately, no output. Safe to enable 
 
 ## 4. Install
 
+### 4.0 Fastest path — the deploy script
+
+Source of truth for these files is `C:\Users\Erik\Claude-development\hooks\`. Claude maintains them there; you deploy them into `.claude` yourself, because the remote bridge refuses to write into any `.claude` directory (hook config is code that runs on every tool call — the guardrail is correct).
+
+```powershell
+cd "$env:USERPROFILE\Claude-development\hooks"
+pwsh -File deploy-hooks.ps1 -WhatIf    # dry run
+pwsh -File deploy-hooks.ps1            # install
+pwsh -File deploy-hooks.ps1 -Verify    # confirm it rejects a broken fixture
+```
+
+The script finds your interpreter, backs up `settings.json` with a timestamp, and replaces its own prior entry instead of appending a duplicate — safe to re-run. §4.1–4.3 below are the manual equivalent if you'd rather do it by hand.
+
 ### 4.1 Place the script
 
 **Windows**
